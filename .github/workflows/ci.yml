@@ -1,0 +1,44 @@
+name: House Price Predictor CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+
+      - name: Validate pipeline
+        run: |
+          python -c "
+          import sys; sys.path.insert(0,'.')
+          from src.preprocessing.clean import clean_data
+          from src.features.engineer import engineer_features
+          import pandas as pd
+          df = pd.DataFrame({
+            'GrLivArea':[1500],'OverallQual':[7],'SalePrice':[200000],
+            'YearBuilt':[2000],'YrSold':[2010],'YearRemodAdd':[2005],
+            'FullBath':[2],'HalfBath':[1],'BsmtFullBath':[1],
+            'BsmtHalfBath':[0],'TotalBsmtSF':[800.0],'OverallCond':[5],
+            'GarageArea':[400.0],'PoolArea':[0],'Fireplaces':[1],
+            'TotRmsAbvGrd':[7],'Neighborhood':['CollgCr']
+          })
+          result = engineer_features(df)
+          assert 'HouseAge' in result.columns
+          print('CI pipeline validation passed')
+          "
